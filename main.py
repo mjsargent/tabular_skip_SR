@@ -35,16 +35,25 @@ def main():
     utils.plot_env(env)
 
     M = utils.compute_random_walk_SR(Ts, gamma = gamma)
+    M_pi_J = utils.compute_random_walk_temporal_SR(Ts, M, dims,  j = max_skip, gamma = gamma)
+
+    # plot SRs
+    utils.plot_SR(M)
+    utils.plot_SR_column(M, s = 10, dims = dims)
+
+    utils.plot_multiple_skip_SRs(M_pi_J, dims = dims)
+    utils.plot_multiple_skip_SRs_columns(M_pi_J, s = 25, dims = dims)
+
+    # plot eigenvectors
     lam_M, V_M = utils.compute_eigenvectors(M)
     utils.plot_eigenvectors(env, V_M, idx =np.arange(32), title = "vanilla_" + env_name, show = show, save = save)
 
-    M_pi_J = utils.compute_random_walk_temporal_SR(Ts, M, dims,  j = max_skip, gamma = gamma)
     for sk, M_j in enumerate(M_pi_J):
-        print(M_j)
         lam_M_j, V_M_j = utils.compute_eigenvectors(M_j)
 
         utils.plot_eigenvectors(env, V_M_j, idx = np.arange(32),  title = f"Temporal skip {sk + 1}_" + env_name, save = save, filename = f"skip_{sk}.png", savepath = f"./results/{env_name}/")
-
+    #utils.plot_SR(M_j, title = f"SR skip {sk}")
+    #utils.plot_SR_column(M, s = 10, dims = dims, title = f"SR Skip {sk} col ")
 
 if __name__ == '__main__':
 

@@ -29,6 +29,7 @@ four_rooms_map_list = ["oooooxooooo",
 open_field_10x10_map_list = ["o"*10 for _ in range(10)]
 open_field_50x50_map_list = ["o"*50 for _ in range(50)]
 # env generation
+
 def make_transition_functions(env_name: str = "four_rooms"):
     """
     helper function that parses str input
@@ -122,7 +123,53 @@ def plot_env(env: list):
     x_o_dict = {"x": 1, "o": 0}
     im = np.array([x_o_dict[state] for row in env for state in row])
 
+    plt.title("Environment")
     plt.imshow(im.reshape((row_n, col_n)))
+    plt.show()
+
+def plot_SR(M: np.array, title: str = "Successor Representation", show = True):
+    """
+    plot the total successor representation
+    """
+    if show:
+        plt.imshow(M)
+        plt.title(title)
+        plt.show()
+    else:
+        return M
+
+def plot_SR_column(M: np.array, s: int, dims: dict, title: str = "Successor Representation Column", show = False):
+    """
+    plot a given column of the successor representation
+    """
+    if show:
+        title = title + f"_{s}"
+        plt.imshow(M[:, s].reshape(dims['rows'], dims['columns']))
+        plt.title(title)
+        plt.show()
+    else:
+        return M[:, s].reshape(dims['rows'], dims['columns'])
+
+
+def plot_multiple_skip_SRs(M_J_s: np.array, dims: dict):
+    total_skips = M_J_s.shape[0]
+    for i, M_j in enumerate(M_J_s):
+        plt.subplot(2, (total_skips + 1) // 2 , i+1)
+        sr_plot = plot_SR(M_j, title = f"skip {i + 1}", show = False)
+        plt.imshow(sr_plot)
+        plt.title(f"skip {i+1}")
+    plt.suptitle("Successor Representations over skips")
+    plt.show()
+
+
+def plot_multiple_skip_SRs_columns(M_J_s: np.array, s: int, dims: dict ):
+    total_skips = M_J_s.shape[0]
+    for i, M_j in enumerate(M_J_s):
+        plt.subplot(2, (total_skips + 1) // 2 , i+1)
+        sr_plot = plot_SR_column(M_j, s, dims = dims, title = f"skip {i + 1}", show = False)
+        plt.imshow(sr_plot)
+        plt.title(f"skip {i+1}")
+    plt.suptitle(f"Successor Representations column {s} over skips")
     plt.show()
 
 def plot_eigenvector(env:list, v: np.array, i:int = 0, show = True):
@@ -262,4 +309,5 @@ def compute_eigenvectors(M: np.array, take_real = True):
     if take_real:
         v = np.real(v)
     return lam, v
+
 
