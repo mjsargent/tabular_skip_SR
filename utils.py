@@ -5,6 +5,8 @@ from mpl_toolkits.mplot3d import Axes3D
 import math
 import os
 
+from sklearn.decomposition import NMF
+
 # set the colour of our walls by setting the
 # colour nans are plotted as
 current_cmap = matplotlib.cm.get_cmap()
@@ -304,10 +306,18 @@ def compute_random_walk_temporal_SR(T: dict, M_baseline: np.array, dims: dict, j
 
     return M_skip
 
-def compute_eigenvectors(M: np.array, take_real = True):
+def compute_eigenvectors(M: np.array, take_real = False):
     lam, v = np.linalg.eig(M)
     if take_real:
         v = np.real(v)
     return lam, v
 
+##### Non negative matrix factorisation
 
+def compute_NMF(M: np.array):
+    nmf_model = NMF(n_components = None, init='nndsvda', random_state=0, \
+                max_iter = 5000, solver="mu", alpha_W = 0.01)
+    W = nmf_model.fit_transform(M)
+    H = nmf_model.components_
+
+    return W, H
