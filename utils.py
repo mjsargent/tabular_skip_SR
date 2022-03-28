@@ -2,10 +2,21 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+
 import math
 import os
+import time
+from copy import deepcopy
 
+# scipy and scikit learn imports
 from sklearn.decomposition import NMF
+
+# tensor related imports
+import tensorly as tl
+from tensorly.decomposition import non_negative_parafac, non_negative_parafac_hals, non_negative_tucker, non_negative_tucker_hals
+from tensorly.decomposition import parafac, tucker
+from tensorly.decomposition._nn_cp import initialize_nn_cp
+from tensorly.cp_tensor import CPTensor
 
 # set the colour of our walls by setting the
 # colour nans are plotted as
@@ -321,3 +332,28 @@ def compute_NMF(M: np.array):
     H = nmf_model.components_
 
     return W, H
+
+##### Tensor Decomposition
+
+def compute_CP_decomp(tM: np.array, dims: dict, non_negative = False):
+
+    n_states = dims["states"]
+    tM_tensor = tl.tensor(tM)
+
+    weights_init, factors_init = initialize_nn_cp(tM_tensor, init='random', rank=n_states)
+    cp_init = CPTensor((weights_init, factors_init))
+    if non_negative:
+        tensor, errors_hals = non_negative_parafac_hals(tM_tensor, rank=n_states, init=deepcopy(cp_init), return_errors=True)
+    else:
+        tensor, errors_hals = parafac(tM_tensor, rank=n_states, init=deepcopy(cp_init), return_errors=True)
+
+    return tensor
+
+def compute_tucker_decomp(tM: np.array, dims:dict, non_negative = False):
+    n_states = dims["states"]
+    tM_tensor = tl.tensor(np.stack(tM))
+    if non_negative:
+        tensor_mu, error_mu = non_negative_tucker(tM_tensor, rank=tM.shape, tol=1e-12, n_iter_max=1000, return_errors=True)
+    else:
+        tensor_mu = tucker(tM_tensor, rank=tM.shape, tol=1e-15, n_iter_max=10000)
+    return tensor_mu
