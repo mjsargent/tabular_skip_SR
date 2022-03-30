@@ -12,7 +12,7 @@ def main():
     #argparse
     parser = argparse.ArgumentParser("tabular skip sr")
     parser.add_argument("--env", type = str, default = "open_field_10",
-                        choices = ["open_field_10", "open_field_50", "four_rooms"])
+                        choices = ["open_field_10", "open_field_50", "four_rooms", "junction_hard"])
     parser.add_argument("--max_skip", type = int, default = 7)
     parser.add_argument("--gamma", type = float, default = 0.99)
     parser.add_argument("--save_figures", type = lambda x: bool(strtobool(x)), default = True)
@@ -41,21 +41,23 @@ def main():
 
     # plot SRs
     utils.plot_SR(M)
-    #utils.plot_SR_column(M, s = 10, dims = dims)
+    #utils.plot_SR(M_pi_J[10])
+    #utils.plot_SR_column(M,env, s = 36, dims = dims, show = True, save = True, title = "")
+    #utils.plot_SR_column(M_pi_J[10],env, s = 36, dims = dims, show = True,save = True, title = "")
 
-    #utils.plot_multiple_skip_SRs(M_pi_J, dims = dims)
-    #utils.plot_multiple_skip_SRs_columns(M_pi_J, s = 25, dims = dims)
+    utils.plot_multiple_skip_SRs(M_pi_J, dims = dims)
+    utils.plot_multiple_skip_SRs_columns(M_pi_J,env, s = 36, dims = dims)
 
     if decomp == "eig":
-        # plot eigenvectors lam_M, V_M = utils.compute_eigenvectors(M)
+        lam_M, V_M = utils.compute_eigenvectors(M)
         utils.plot_eigenvectors(env, V_M, idx =np.arange(32), title = "vanilla_" + env_name, show = show, save = save)
 
         for sk, M_j in enumerate(M_pi_J):
             lam_M_j, V_M_j = utils.compute_eigenvectors(M_j)
 
             utils.plot_eigenvectors(env, V_M_j, idx = np.arange(32),  title = f"Temporal skip {sk + 1}_" + env_name, save = save, filename = f"skip_{sk}.png", savepath = f"./results/{env_name}/")
-        #utils.plot_SR(M_j, title = f"SR skip {sk}")
-        #utils.plot_SR_column(M, s = 10, dims = dims, title = f"SR Skip {sk} col ")
+        utils.plot_SR(M_j, title = f"SR skip {sk}")
+        utils.plot_SR_column(M, env, s = 10, dims = dims, title = f"SR Skip {sk} col ")
 
     elif decomp == "NMF":
         W, H = utils.compute_NMF(M)
@@ -80,8 +82,8 @@ def main():
         utils.plot_eigenvectors(env, np.flip(factors[2], axis = 1 ), idx = np.arange(32), title = " last factor 2")
         utils.plot_eigenvectors(env, factors[2], idx = np.arange(32), title = "factor 2 first 32")
         #utils.plot_eigenvectors(env, factors[0], idx = np.arange(6), title = "factor 0")
-        utils.plot_eigenvectors(env, np.flip(np.matmul(factors[1], factors[2]), axis =1 ), idx = np.arange(32), title = "factor 1 times 2 ")
-        utils.plot_eigenvectors(env, np.matmul(factors[1], factors[2]), idx = np.arange(32), title = "factor 1 times 2 first 32 ")
+        utils.plot_eigenvectors(env, np.flip(np.matmul(factors[1].T, factors[2]), axis =1 ), idx = np.arange(32), title = "factor 1 times 2 ")
+        utils.plot_eigenvectors(env, np.matmul(factors[1].T, factors[2]), idx = np.arange(32), title = "factor 1 times 2 first 32 ")
 
 
 if __name__ == '__main__':

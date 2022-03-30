@@ -39,6 +39,17 @@ four_rooms_map_list = ["oooooxooooo",
                         "oooooxooooo",
                         "oooooxooooo"]
 
+junction_hard_map_list = ["ooxooooooo",
+                          "ooxooooooo",
+                          "ooxxxxxxoo",
+                          "ooxxxxxxoo",
+                          "oooooooooo",
+                          "oooooooooo",
+                          "ooxxxxxxoo",
+                          "ooxxxxxxoo",
+                          "ooxooooooo",
+                          "ooxooooooo"
+]
 open_field_10x10_map_list = ["o"*10 for _ in range(10)]
 open_field_50x50_map_list = ["o"*50 for _ in range(50)]
 # env generation
@@ -51,6 +62,8 @@ def make_transition_functions(env_name: str = "four_rooms"):
     """
     if env_name == "four_rooms":
         env = four_rooms_map_list
+    elif env_name == "junction_hard":
+        env = junction_hard_map_list
     elif env_name == "open_field_10":
         env = open_field_10x10_map_list
     elif env_name == "open_field_50":
@@ -73,15 +86,24 @@ def gen_t(env: list):
     row_n = len(env[0])
     col_n = len(env)
 
+    # create dict of unique identifers
+    state_id = dict()
+    id_counter = 0
+    for i, row in enumerate(env):
+        for j, state in enumerate(row):
+            if state == "x":
+                state_id[(i,j)] = np.nan
+            else:
+                state_id[(i,j)] = id_counter
+                id_counter+= 1
+
     # quick dirty looping
-    x_count = 0
     for action in actions:
         T = np.zeros([n_states, n_states])
         for i, row in enumerate(env):
             for j, state in enumerate(row):
                 # check if state is an x
                 if state == "x":
-                    x_count += 1
                     continue
 
                 # check the i boundary
@@ -98,7 +120,11 @@ def gen_t(env: list):
 
                 elif row[j_next] == "x":
                     j_next = j
-                T[row_n * i + j - x_count][row_n * i_next + j_next - x_count] = 1
+
+                start_id = state_id[(i,j)]
+                next_id = state_id[(i_next, j_next)]
+
+                T[start_id][next_id] = 1
         transition_functions_dict[action] = T
 
     return transition_functions_dict
@@ -146,22 +172,41 @@ def plot_SR(M: np.array, title: str = "Successor Representation", show = True):
     """
     if show:
         plt.imshow(M)
-        plt.title(title)
+     #   plt.title(title)
         plt.show()
     else:
         return M
 
-def plot_SR_column(M: np.array, s: int, dims: dict, title: str = "Successor Representation Column", show = False):
+def plot_SR_column(M: np.array, env:list,  s: int, dims: dict, title: str = "Successor Representation Column", show = False, save = False):
     """
     plot a given column of the successor representation
     """
+
+    row_n = dims["rows"]
+    col_n = dims["columns"]
+
+    x_o_dict = {"x": 1, "o": 0}
+
+    count = 0
+    x_count = 0
+    im = np.zeros(dims["elements"])
+    for row in env:
+        for state in row:
+            if state == "x":
+                im[count] = np.nan
+                x_count +=1
+            else:
+                im[count] = M[count - x_count, s]
+            count+= 1
+
     if show:
         title = title + f"_{s}"
-        plt.imshow(M[:, s].reshape(dims['rows'], dims['columns']))
-        plt.title(title)
+        plt.imshow(im.reshape(dims['rows'], dims['columns']))
+        #plt.title(title)
+        plt.axis('off')
         plt.show()
     else:
-        return M[:, s].reshape(dims['rows'], dims['columns'])
+        return im.reshape(dims['rows'], dims['columns'])
 
 
 def plot_multiple_skip_SRs(M_J_s: np.array, dims: dict):
@@ -175,11 +220,11 @@ def plot_multiple_skip_SRs(M_J_s: np.array, dims: dict):
     plt.show()
 
 
-def plot_multiple_skip_SRs_columns(M_J_s: np.array, s: int, dims: dict ):
+def plot_multiple_skip_SRs_columns(M_J_s: np.array, env:list, s: int, dims: dict ):
     total_skips = M_J_s.shape[0]
     for i, M_j in enumerate(M_J_s):
         plt.subplot(2, (total_skips + 1) // 2 , i+1)
-        sr_plot = plot_SR_column(M_j, s, dims = dims, title = f"skip {i + 1}", show = False)
+        sr_plot = plot_SR_column(M_j,env, s, dims = dims, title = f"skip {i + 1}", show = False)
         plt.imshow(sr_plot)
         plt.title(f"skip {i+1}")
     plt.suptitle(f"Successor Representations column {s} over skips")
@@ -353,7 +398,7 @@ def compute_tucker_decomp(tM: np.array, dims:dict, non_negative = False):
     n_states = dims["states"]
     tM_tensor = tl.tensor(np.stack(tM))
     if non_negative:
-        tensor_mu, error_mu = non_negative_tucker(tM_tensor, rank=tM.shape, tol=1e-12, n_iter_max=1000, return_errors=True)
+        tensor_mu, error_mu = non_negative_tucker(tM_tensor, rank=[1,tM.shape[1], tM.shape[2]], tol=1e-12, n_iter_max=1000, return_errors=True)
     else:
         tensor_mu = tucker(tM_tensor, rank=tM.shape, tol=1e-15, n_iter_max=10000)
     return tensor_mu
