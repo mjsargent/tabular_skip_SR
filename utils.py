@@ -1,6 +1,9 @@
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+#import pprint
+matplotlib.use('TkAgg')
+matplotlib.rc('image', cmap='cividis')
 from mpl_toolkits.mplot3d import Axes3D
 
 import math
@@ -22,9 +25,9 @@ from tensorly.cp_tensor import CPTensor
 # colour nans are plotted as
 current_cmap = matplotlib.cm.get_cmap()
 current_cmap.set_bad(color='grey')
-
 actions = ["UP", "RIGHT", "DOWN", "LEFT"]
 action_dict = {action : i for i, action in enumerate(actions)}
+number_dict = {i : action for i, action in enumerate(actions)}
 action_effect = ((-1,0), (0, 1), (1, 0), (0, -1)) # up right down left
 
 four_rooms_map_list = ["oooooxooooo",
@@ -166,18 +169,64 @@ def plot_env(env: list):
     plt.imshow(im.reshape((row_n, col_n)))
     plt.show()
 
-def plot_SR(M: np.array, title: str = "Successor Representation", show = True):
+def plot_SR(M: np.array, title: str = "Successor Representation", show = True, save = False):
     """
     plot the total successor representation
     """
+    savepath = "RLDM"
+
     if show:
         plt.imshow(M)
      #   plt.title(title)
+        if save:
+
+            if not os.path.isdir(savepath):
+                os.makedirs(savepath)
+            plt.savefig(savepath + "_SR" + ".png", transparent = True)
         plt.show()
     else:
         return M
 
-def plot_SR_column(M: np.array, env:list,  s: int, dims: dict, title: str = "Successor Representation Column", show = False, save = False):
+def plot_SR_row(M: np.array, env:list,  s: int, dims: dict, title: str = "Successor Representation Column", show = False, save = False, savepath = "./results"):
+    """
+    plot a given column of the successor representation
+    """
+
+    row_n = dims["rows"]
+    col_n = dims["columns"]
+
+    x_o_dict = {"x": 1, "o": 0}
+
+    count = 0
+    x_count = 0
+    im = np.zeros(dims["elements"])
+    for row in env:
+        for state in row:
+            if state == "x":
+                im[count] = np.nan
+                x_count +=1
+            else:
+                im[count] = M[s, count - x_count]
+            count+= 1
+
+    plt.imshow(im.reshape(dims['rows'], dims['columns']))
+    plt.title(title, fontsize = 20)
+    plt.axis('off')
+    if save:
+        if not os.path.isdir(savepath):
+            os.makedirs(savepath)
+        filename = title
+        plt.savefig(savepath + title + ".png", transparent = True)
+    if show:
+        #title = title + f"_{s}"
+        plt.show()
+
+
+    else:
+        return im.reshape(dims['rows'], dims['columns'])
+
+
+def plot_SR_column(M: np.array, env:list,  s: int, dims: dict, title: str = "Successor Representation Column", show = False, save = False, savepath = "./results"):
     """
     plot a given column of the successor representation
     """
@@ -199,14 +248,61 @@ def plot_SR_column(M: np.array, env:list,  s: int, dims: dict, title: str = "Suc
                 im[count] = M[count - x_count, s]
             count+= 1
 
+    plt.imshow(im.reshape(dims['rows'], dims['columns']))
+    plt.title(title, fontsize = 20)
+    plt.axis('off')
+    if save:
+        if not os.path.isdir(savepath):
+            os.makedirs(savepath)
+        filename = title
+        plt.savefig(savepath + title + ".png", transparent = True)
     if show:
-        title = title + f"_{s}"
-        plt.imshow(im.reshape(dims['rows'], dims['columns']))
-        #plt.title(title)
-        plt.axis('off')
+        #title = title + f"_{s}"
         plt.show()
+
+
     else:
         return im.reshape(dims['rows'], dims['columns'])
+
+def plot_SR_columns_superimposed(M: np.array, env:list,  s: list, dims: dict, title: str = "Successor Representation Column", show = False, save = False, savepath = "./results"):
+    """
+    plot two columns of the successor representation superimposed over an env
+    """
+
+    row_n = dims["rows"]
+    col_n = dims["columns"]
+
+    x_o_dict = {"x": 1, "o": 0}
+
+    count = 0
+    x_count = 0
+    im = np.zeros(dims["elements"])
+    for row in env:
+        for state in row:
+            if state == "x":
+                im[count] = np.nan
+                x_count +=1
+            else:
+                #im[count] = M[count - x_count, s[0]] + M[count - x_count, s[1]]
+                im[count] = sum([M[count - x_count, j] for j in s])
+            count+= 1
+
+    plt.imshow(im.reshape(dims['rows'], dims['columns']))
+    plt.title(title, fontsize = 20)
+    plt.axis('off')
+    if save:
+        if not os.path.isdir(savepath):
+            os.makedirs(savepath)
+        filename = title
+        plt.savefig(savepath + title + ".png")
+    if show:
+        #title = title + f"_{s}"
+        plt.show()
+
+
+    else:
+        return im.reshape(dims['rows'], dims['columns'])
+
 
 
 def plot_multiple_skip_SRs(M_J_s: np.array, dims: dict):
@@ -313,7 +409,7 @@ def plot_eigenvectors(env: list, v: np.array, title:str = "", idx: list = [0], s
         plt.subplot(row_n, 8, i+1)
         eig_plot = plot_eigenvector(env, v, i, show=False)
         plt.imshow(eig_plot)
-    plt.tight_layout()
+    plt.subplots_adjust(wspace=0.01,hspace=0.01)
     plt.suptitle(title,fontsize=20)
     if save:
         if not os.path.isdir(savepath):
@@ -340,33 +436,74 @@ def compute_random_walk_SR(T: dict, gamma: float = 0.99):
     M = np.linalg.inv(np.eye(T_pi.shape[0]) - gamma * T_pi)
     return M
 
-def compute_random_walk_temporal_SR(T: dict, M_baseline: np.array, dims: dict, j: int = 2, gamma: float = 0.99):
+def compute_random_walk_temporal_SR(T: dict, M_baseline: np.array, dims: dict, j: int = 2, gamma: float = 0.99, exp_scale = False):
     # when computing the temporally extended SR
     # the effect of the action taken for j steps needs to be considered
     n_states = dims["states"]
     M_skip = np.zeros([j, n_states, n_states]) # for random skip we don't need to store the action
 
-    for skip in range(j): # note this starts at zero; idx 1 is skip 2
+    T_stack = np.stack([T_a for T_a in T.values()])
+    T_pi = 0.25 * T_stack.sum(axis=0)
+    T_pi = T_pi / T_pi.sum(axis = 1).reshape(-1,1)
+
+    if exp_scale:
+        skip_range = np.arange(0, j)
+        skip_range = np.power(2, skip_range)
+
+    else:
+        skip_range = np.arange(0, j)
+
+    for i, skip in enumerate(skip_range): # note this starts at zero; idx 1 is skip 2
 
         M_store = []
         for a, T_a in enumerate(T.values()):
             I = np.eye(n_states)
-
-            for n in range(1,skip + 1):
+            for n in range(0, skip + 1):
                 I+= gamma ** n * np.linalg.matrix_power(T_a, n)
-            I+= gamma ** (skip + 1) * M_baseline
+            #I+= np.matmul((gamma ** (skip + 1) * np.linalg.matrix_power(T_pi, skip + 1)), M_baseline)
 
             M_store.append(I)
 
-        M_skip[skip, :, :] = 0.25 * np.sum(np.stack(M_store), axis = 0)
+        T_sum_j = 0.25 * np.sum(np.stack(M_store), axis = 0)
+        T_last_j = np.zeros([n_states, n_states])
+        for T_a in T.values():
+            T_last_j += np.linalg.matrix_power(T_a, skip + 1)
+        T_last_j = 0.25 * gamma ** (skip + 1) * T_last_j
+        M_j = T_sum_j + np.matmul(T_last_j, M_baseline)
 
+        M_skip[i, :, :] = M_j
     return M_skip
+
+def compute_macro_action_temporal_SR(T: dict, M_baseline: np.array, dims: dict,
+                                     action_seq: list = [0, 0, 1, 1], gamma: float = 0.99):
+    """
+    function for compute the temporal SR under a defined macroaction:
+    the macroaction is defined as taking the actions in action sequence
+    """
+    n_states = dims["states"]
+
+    I = np.eye(n_states)
+    for i, action in enumerate(action_seq):
+        if i == 0:
+            M_current = gamma * T[number_dict[action]]
+            I+= M_current
+        else:
+            #M_current  = np.matmul(gamma ** ( i+1) * T[number_dict[action]], M_current)
+            M_current  = np.matmul(M_current,gamma ** ( i+1) * T[number_dict[action]])
+            I += M_current
+
+
+    #M_macro = I +  gamma * np.matmul(M_current, M_baseline)
+    M_macro = I +  gamma * np.matmul(M_baseline, M_current)
+
+    return M_macro
 
 def compute_eigenvectors(M: np.array, take_real = False):
     lam, v = np.linalg.eig(M)
     if take_real:
         v = np.real(v)
     return lam, v
+
 
 ##### Non negative matrix factorisation
 
@@ -402,3 +539,17 @@ def compute_tucker_decomp(tM: np.array, dims:dict, non_negative = False):
     else:
         tensor_mu = tucker(tM_tensor, rank=tM.shape, tol=1e-15, n_iter_max=10000)
     return tensor_mu
+
+##### Other misc utils
+
+def print_macro_actions(results: list):
+    # up, right, down, left
+    unicode_arrow_map = ["\u2191", "\u2192","\u2193", "\u2190"]
+    print("Loss ::: Action Sequence")
+    for r in results:
+        seq_string = u""
+        for act in r[1]:
+            seq_string+= unicode_arrow_map[act] + " "
+        print(np.round(r[0], 3), seq_string)
+
+
