@@ -545,11 +545,24 @@ def compute_tucker_decomp(tM: np.array, dims:dict, non_negative = False):
 def print_macro_actions(results: list):
     # up, right, down, left
     unicode_arrow_map = ["\u2191", "\u2192","\u2193", "\u2190"]
-    print("Loss ::: Action Sequence")
-    for r in results:
-        seq_string = u""
-        for act in r[1]:
-            seq_string+= unicode_arrow_map[act] + " "
-        print(np.round(r[0], 3), seq_string)
 
+    if isinstance(results, dict):
+        # results is a list of arrays of q values
+        print("Action Sequences")
+        keys = np.arange(0, len(results.keys()))
+        seq_string = u""
+        for k in keys:
+            q = results[k]
+            act = int(np.argmax(q))
+            seq_string+= unicode_arrow_map[act] + " "
+        print(seq_string)
+
+        # results is a explict sequence
+    else:
+        print("Loss ::: Action Sequence")
+        for r in results:
+            seq_string = u""
+            for act in r[1]:
+                seq_string+= unicode_arrow_map[act] + " "
+            print(np.round(r[0], 3), seq_string)
 
