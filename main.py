@@ -13,7 +13,7 @@ def main():
     #argparse
     parser = argparse.ArgumentParser("tabular skip sr")
     parser.add_argument("--env", type = str, default = "open_field_10",
-                        choices = ["open_field_10", "open_field_50", "four_rooms", "junction_hard"])
+                        choices = ["open_field_10", "open_field_50", "four_rooms", "junction_hard", "four_way_junction"])
     parser.add_argument("--max_skip", type = int, default = 10)
     parser.add_argument("--gamma", type = float, default = 0.99)
     parser.add_argument("--save_figures", type = lambda x: bool(strtobool(x)), default = True)
@@ -46,6 +46,7 @@ def main():
     M = utils.compute_random_walk_SR(Ts, gamma = gamma)
     M_pi_J = utils.compute_random_walk_temporal_SR(Ts, M, dims,  j = max_skip, gamma = gamma, exp_scale = exp_scale)
 
+    """
     utils.plot_SR(M, save = True)
     utils.plot_SR(M_pi_J[2], save = True)
     utils.plot_SR(M_pi_J[9], save = True)
@@ -57,7 +58,7 @@ def main():
     M_macro = utils.compute_macro_action_temporal_SR(Ts, M, dims, action_seq)
     M_macro_2 = utils.compute_macro_action_temporal_SR(Ts, M, dims, action_seq_2)
     M_macro_3 = utils.compute_macro_action_temporal_SR(Ts, M, dims, action_seq_3)
-
+    """
     # code from https://stackoverflow.com/questions/27286537/numpy-efficient-way-to-generate-combinations-from-given-ranges
     # consider all macro actions of length j
     action_sequences = list(itertools.product(range(4), range(4), range(4), range(4), range(4), range(4), range(4), range(4)))
@@ -82,7 +83,7 @@ def main():
     #utils.plot_SR_column(M,env, s = 90, dims = dims, show = True, save = True, title = "")
     #utils.plot_SR_columns_superimposed(M, env, s = [42, 90], dims = dims, show = True, save = True, title = "")
 
-    utils.plot_SR(M_macro)
+    #utils.plot_SR(M_macro)
     #utils.plot_SR(M_pi_J[6])
     #utils.plot_SR_column(M,env, s = 26, dims = dims, show = True, save = True, title = "")
     #utils.plot_SR_row(M,env, s = 26, dims = dims, show = True, save = True, title = "")
@@ -93,12 +94,14 @@ def main():
 
     if decomp == "eig":
         lam_M, V_M = utils.compute_eigenvectors(M)
+
         utils.plot_eigenvectors(env, V_M, idx =np.arange(99), title = "vanilla_" + env_name, show = show, save = save)
 
         for sk, M_j in enumerate(M_pi_J):
             lam_M_j, V_M_j = utils.compute_eigenvectors(M_j)
 
             utils.plot_eigenvectors(env, V_M_j, idx = np.arange(99),  title = f"Temporal skip {sk + 1}_" + env_name, save = save, filename = f"skip_{sk}.png", savepath = f"./results/{env_name}/")
+            utils.plot_eigenvalue_distribution(lam_M_j)
         utils.plot_SR(M_j, title = f"SR skip {sk}")
         utils.plot_SR_column(M, env, s = 10, dims = dims, title = f"SR Skip {sk} col ")
 

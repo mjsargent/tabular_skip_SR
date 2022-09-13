@@ -50,9 +50,18 @@ junction_hard_map_list = ["ooxooooooo",
                           "oooooooooo",
                           "ooxxxxxxoo",
                           "ooxxxxxxoo",
-                          "ooxooooooo",
-                          "ooxooooooo"
-]
+                          "ooxooooooo"]
+
+four_way_junction_map_list = ["xxxxoxxxx",
+                              "xxxxoxxxx",
+                              "xxxxoxxxx",
+                              "xxxxoxxxx",
+                              "ooooooooo",
+                              "xxxxoxxxx",
+                              "xxxxoxxxx",
+                              "xxxxoxxxx",
+                              "xxxxoxxxx"]
+
 open_field_10x10_map_list = ["o"*10 for _ in range(10)]
 open_field_50x50_map_list = ["o"*50 for _ in range(50)]
 # env generation
@@ -71,6 +80,8 @@ def make_transition_functions(env_name: str = "four_rooms"):
         env = open_field_10x10_map_list
     elif env_name == "open_field_50":
         env = open_field_50x50_map_list
+    elif env_name == "four_way_junction":
+        env = four_way_junction_map_list
 
     trans_function_dict = gen_t(env)
     return trans_function_dict, env
@@ -421,7 +432,7 @@ def plot_eigenvectors(env: list, v: np.array, title:str = "", idx: list = [0], s
 
 # SR calculation
 
-def compute_random_walk_SR(T: dict, gamma: float = 0.99):
+def compute_random_walk_SR(T: dict, gamma: float = 0.99, show  = False):
     # random walk therefore uniform policy
 
     # preserving the action effect doesn't matter here
@@ -429,11 +440,12 @@ def compute_random_walk_SR(T: dict, gamma: float = 0.99):
     T_stack = np.stack([T_a for T_a in T.values()])
     T_pi = 0.25 * T_stack.sum(axis=0)
     T_pi = T_pi / T_pi.sum(axis = 1).reshape(-1,1)
-    plt.imshow(T_pi)
-    plt.show()
 
     # Neumann sum
     M = np.linalg.inv(np.eye(T_pi.shape[0]) - gamma * T_pi)
+    if show:
+        plt.imshow(M)
+        plt.show()
     return M
 
 def compute_random_walk_temporal_SR(T: dict, M_baseline: np.array, dims: dict, j: int = 2, gamma: float = 0.99, exp_scale = False):
@@ -503,6 +515,12 @@ def compute_eigenvectors(M: np.array, take_real = False):
     if take_real:
         v = np.real(v)
     return lam, v
+
+def plot_eigenvalue_distribution(lam: np.array):
+    spec_radius = np.max(np.abs(lam))
+    print("Spectral Radius", spec_radius)
+    plt.hist(np.real(lam), bins = "auto")
+    plt.show()
 
 
 ##### Non negative matrix factorisation
